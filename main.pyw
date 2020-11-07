@@ -1,6 +1,5 @@
 from multiprocessing import Process, Pipe
 import multiprocessing as mp
-# from CanvasOCV import CanvasOCV
 from threading import Thread
 from tkinter import *
 from time import sleep
