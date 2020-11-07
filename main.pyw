@@ -1,4 +1,4 @@
-from multiprocessing import Process, Manager
+from multiprocessing import Process, Pipe
 import multiprocessing as mp
 # from CanvasOCV import CanvasOCV
 from threading import Thread
@@ -6,65 +6,55 @@ from tkinter import *
 from time import sleep
 
 class My(Tk):
-    def __init__(self, shared, clickEvent, destroyEvent, index, *args, **kwargs):
+    def __init__(self, event, pipe, index, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.geometry('600x400')
-        self.shared = shared
-        self.clickEvent = clickEvent
-        self.destroyEvent = destroyEvent
+        self.event = event
+        self.pipe = pipe
         self.index = index
         self.labelVar = IntVar(0)
         self.label = Label(textvariable=(self.labelVar))
         self.label.pack(fill=BOTH, expand = 1)
         self.label.bind('<Button-1>', self.click)
-        self.loopThread = Thread(name='mainloop', target=self.loop, args=(shared, clickEvent,), daemon=True)
+        self.loopThread = Thread(name='mainloop', target=self.loop, args=(pipe,), daemon=True)
         self.loopThread.start()
-        self.destroyThread = Thread(name='destroy', target=self.destroy_lisener, args=(destroyEvent,), daemon=True)
+        self.destroyThread = Thread(name='destroy', target=self.destroy_lisener, args=(event,), daemon=True)
         self.destroyThread.start()
 
     def click(self, event):
-        self.shared[0] += 1
-        self.shared[1:2] = [1, 1]
-        self.labelVar.set(self.shared[0])
-        self.clickEvent.set()
+        self.labelVar.set(self.labelVar.get() + 1)
+        self.pipe.send(self.labelVar.get())
+        print(f'process {self.index} sent data into pipeline.')
 
-    def loop(self, shared, clickEvent):
+    def loop(self, pipe):
         "Is running in separate thread."
         while True:
-            clickEvent.wait()
-            print(f'clickEvent occurred in process with index {self.index}')
-            self.labelVar.set(shared[0])
-            if shared[self.index]:
-                shared[self.index] = 0
-                if not sum(shared[1:2]):
-                    clickEvent.clear()
+            value = pipe.recv()
+            print(f'process {self.index} recived data from pipeline.')
+            self.labelVar.set(value)
 
-    def destroy_lisener(self, destroyEvent):
-        destroyEvent.wait()
-        print(f'destroyEvent occurred in process with index {self.index}')
+    def destroy_lisener(self, event):
+        event.wait()
+        print(f'event occurred in process with index {self.index}')
         self.destroy()
 
     def destroy(self):
-        self.shared[3] = 1
-        self.destroyEvent.set()
+        self.event.set()
         super().destroy()
             
 
-def mainloop(d, l, e1, e2, i):
-    root = My(l, e1, e2, i)
+def mainloop(e, p, i):
+    root = My(e, p, i)
     root.mainloop()
 
 if __name__ == '__main__':
-    with Manager() as manager:
-        d = manager.dict()
-        l = manager.list([0, 0, 0, 0])
-        e1 = mp.Event()
-        e2 = mp.Event()
-        p = []
-        for i in range(1):
-            p.append(Process(target=mainloop, args=(d, l, e1, e2, 1)))
-            p.append(Process(target=mainloop, args=(d, l, e1, e2, 2)))
-        for i in range(2):
-            p[i].start()
-        for i in range(2):
-            p[i].join()
+    e = mp.Event()
+    p1, p2 = mp.Pipe()
+    p = []
+    for i in range(1):
+        p.append(Process(target=mainloop, args=(e, p1, 1)))
+        p.append(Process(target=mainloop, args=(e, p2, 2)))
+    for i in range(2):
+        p[i].start()
+    for i in range(2):
+        p[i].join()
