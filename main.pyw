@@ -23,13 +23,13 @@ class My(Tk):
     def click(self, event):
         self.labelVar.set(self.labelVar.get() + 1)
         self.pipe.send(self.labelVar.get())
-        print(f'process {self.index} sent data into pipeline.')
+        print(f'process {self.index} sent data {self.labelVar.get()} into pipeline.')
 
     def loop(self, pipe):
         "Is running in separate thread."
         while True:
             value = pipe.recv()
-            print(f'process {self.index} recived data from pipeline.')
+            print(f'process {self.index} recived data {value} from pipeline.')
             self.labelVar.set(value)
 
     def destroy_lisener(self, event):
