@@ -49,10 +49,10 @@ def mainloop(e, p, i):
 if __name__ == '__main__':
     e = mp.Event()
     p1, p2 = mp.Pipe()
-    p = []
-    for i in range(1):
-        p.append(Process(target=mainloop, args=(e, p1, 1)))
-        p.append(Process(target=mainloop, args=(e, p2, 2)))
+    p = [
+        Process(target=mainloop, args=(e, p1, 1)),
+        Process(target=mainloop, args=(e, p2, 2))
+    ]
     for i in range(2):
         p[i].start()
     for i in range(2):
