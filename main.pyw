@@ -54,7 +54,7 @@ def mainloop(d, l, e1, e2, i):
     root.mainloop()
 
 if __name__ == '__main__':
-    # mp.freeze_support() # Uncomment this of you want to use pyinstaller
+    # mp.freeze_support() # Uncomment this if you want to use pyinstaller
     with mp.Manager() as manager:
         d = manager.dict()
         l = manager.list([0, 0, 0, 0])
